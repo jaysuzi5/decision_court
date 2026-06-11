@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: decisioncourt
+      POSTGRES_PASSWORD: decisioncourt
+      POSTGRES_DB: decisioncourt
+    ports:
+      - "5432:5432"
+    volumes:
+      - dcdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U decisioncourt"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GROQ_API_KEY: ${GROQ_API_KEY:?set GROQ_API_KEY in your .env}
+      DATABASE_URL: postgresql+asyncpg://decisioncourt:decisioncourt@db:5432/decisioncourt
+      DEV_MODE: ${DEV_MODE:-false}
+      CORS_ORIGINS: http://localhost:8000
+    ports:
+      - "8000:8000"
+
+volumes:
+  dcdata:

@@ -1,0 +1,90 @@
+---
+# Dedicated Postgres for Decision Court (spec §4: do not reuse another app's DB).
+apiVersion: v1
+kind: Service
+metadata:
+  name: decision-court-db
+  namespace: decision-court
+  labels:
+    app: decision-court
+    component: db
+spec:
+  clusterIP: None
+  selector:
+    app: decision-court
+    component: db
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: decision-court-db
+  namespace: decision-court
+  labels:
+    app: decision-court
+    component: db
+spec:
+  serviceName: decision-court-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: decision-court
+      component: db
+  template:
+    metadata:
+      labels:
+        app: decision-court
+        component: db
+    spec:
+      securityContext:
+        fsGroup: 999
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: decisioncourt
+            - name: POSTGRES_USER
+              value: decisioncourt
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: decision-court-secrets
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "decisioncourt"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "decisioncourt"]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: nfs-client
+        resources:
+          requests:
+            storage: 2Gi

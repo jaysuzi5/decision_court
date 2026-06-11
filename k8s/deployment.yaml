@@ -1,0 +1,83 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: decision-court
+  namespace: decision-court
+  labels:
+    app: decision-court
+    component: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: decision-court
+      component: web
+  template:
+    metadata:
+      labels:
+        app: decision-court
+        component: web
+    spec:
+      serviceAccountName: decision-court
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: web
+          image: jaysuzi5/decision-court:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: decision-court-config
+          env:
+            - name: GROQ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: decision-court-secrets
+                  key: GROQ_API_KEY
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: decision-court-secrets
+                  key: DATABASE_URL
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 8
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: decision-court
+  namespace: decision-court
+  labels:
+    app: decision-court
+spec:
+  type: LoadBalancer
+  selector:
+    app: decision-court
+    component: web
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000

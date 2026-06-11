@@ -1,0 +1,14 @@
+**/__pycache__
+**/*.pyc
+.venv
+venv
+frontend/node_modules
+frontend/dist
+backend/static
+.git
+.env
+.env.*
+!.env.example
+k8s
+*.log
+.DS_Store

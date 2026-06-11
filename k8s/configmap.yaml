@@ -1,0 +1,19 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: decision-court-config
+  namespace: decision-court
+data:
+  # Models — verify IDs against https://console.groq.com/docs before rollout.
+  MODEL_DEBATE: "llama-3.3-70b-versatile"
+  MODEL_VERDICT: "openai/gpt-oss-120b"
+  MODEL_DEV: "llama-3.1-8b-instant"
+  DEV_MODE: "false"
+  # Cost guardrails
+  MAX_TOKENS_PER_TURN: "900"
+  MAX_TOKENS_PER_SESSION: "40000"
+  MAX_JUDGE_QUESTIONS: "5"
+  # Served same-origin behind the Cloudflare tunnel, so no extra CORS origin needed.
+  CORS_ORIGINS: "https://decision-court.jaycurtis.org"
+  CRISIS_REGION: "US"
