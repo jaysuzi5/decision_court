@@ -9,7 +9,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/jaysuzi5/decision-court.git
+    repoURL: https://github.com/jaysuzi5/decision_court.git
     targetRevision: main
     path: k8s
   destination:

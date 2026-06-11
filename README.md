@@ -124,9 +124,9 @@ pattern as the other apps. Or `kubectl apply -f k8s/` directly to bootstrap once
 
 Like `todo.jaycurtis.org` / `vacations.jaycurtis.org`: add a hostname to your existing
 `cloudflared` tunnel config mapping `decision-court.jaycurtis.org` → the in-cluster service
-`http://decision-court.decision-court.svc.cluster.local:80` (or the Service's LB IP). No
-public TLS to manage in-cluster — Cloudflare terminates it. Internal-only access also works
-via the `LoadBalancer` IP (metallb).
+`http://decision-court.decision-court.svc.cluster.local:80`. The Service is `ClusterIP`
+(the metallb pool is small/often full, and the tunnel reaches the Service by DNS, so no
+LoadBalancer IP is needed). No public TLS to manage in-cluster — Cloudflare terminates it.
 
 ---
 

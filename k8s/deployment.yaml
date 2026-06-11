@@ -73,7 +73,9 @@ metadata:
   labels:
     app: decision-court
 spec:
-  type: LoadBalancer
+  # Exposed externally via the Cloudflare tunnel (decision-court.jaycurtis.org), which
+  # targets this Service's in-cluster DNS — so no metallb LoadBalancer IP is needed.
+  type: ClusterIP
   selector:
     app: decision-court
     component: web
