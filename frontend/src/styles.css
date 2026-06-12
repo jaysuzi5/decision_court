@@ -73,6 +73,14 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
   border-bottom: 1px solid var(--line); margin-bottom: 18px;
 }
 .gavel-sm { font-size: 16px; }
+.bench { position: relative; }
+.delete-link {
+  position: absolute; right: 0; top: 6px; background: transparent; border: 0;
+  color: var(--muted); font-family: var(--serif); font-size: 12px; letter-spacing: 1px;
+  text-transform: lowercase; cursor: pointer; opacity: 0.6;
+}
+.delete-link:hover { color: var(--pros); opacity: 1; }
+.verdict-actions .ghost.danger { color: var(--pros); border-color: var(--pros); }
 
 .transcript { display: flex; flex-direction: column; gap: 18px; }
 .turn { max-width: 86%; }

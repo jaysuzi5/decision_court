@@ -7,10 +7,12 @@ export default function VerdictPanel({
   verdict,
   sessionId,
   onReset,
+  onDelete,
 }: {
   verdict: VerdictOut;
   sessionId?: string;
   onReset?: () => void;
+  onDelete?: () => void;
 }) {
   const [checked, setChecked] = useState<Record<number, boolean>>({});
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -96,6 +98,11 @@ export default function VerdictPanel({
         {onReset && (
           <button className="ghost" onClick={onReset}>
             New case
+          </button>
+        )}
+        {onDelete && (
+          <button className="ghost danger" onClick={onDelete}>
+            Delete case
           </button>
         )}
       </div>

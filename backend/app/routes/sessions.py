@@ -2,7 +2,7 @@ import logging
 import asyncio
 from collections import defaultdict
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +10,7 @@ from ..config import get_settings
 from ..db import SessionLocal, get_db
 from ..models import Role, Session, Status, Turn
 from ..orchestrator import load_session, run
+from ..ratelimit import SlidingWindowLimiter
 from ..safety import crisis_response, detect_crisis
 from ..schemas import (
     CreateSessionResponse,
@@ -28,6 +29,16 @@ settings = get_settings()
 # Per-session generation lock: prevents two stream connections double-driving one session.
 _locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
+_limiter = SlidingWindowLimiter(settings.rate_limit_sessions, settings.rate_limit_window_sec)
+
+
+def _client_ip(request: Request) -> str:
+    # Behind cloudflared/nginx: trust the first X-Forwarded-For hop, else the socket peer.
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
 
 def _intake_text(intake: Intake) -> str:
     return " ".join(
@@ -37,7 +48,17 @@ def _intake_text(intake: Intake) -> str:
 
 
 @router.post("/session", response_model=CreateSessionResponse)
-async def create_session(intake: Intake, db: AsyncSession = Depends(get_db)):
+async def create_session(
+    intake: Intake, request: Request, db: AsyncSession = Depends(get_db)
+):
+    if not _limiter.allow(_client_ip(request)):
+        retry = _limiter.retry_after(_client_ip(request))
+        raise HTTPException(
+            429,
+            f"The docket is full from your address — try again in about "
+            f"{max(1, retry // 60)} minute(s).",
+            headers={"Retry-After": str(retry)},
+        )
     if intake.is_empty():
         raise HTTPException(422, "Tell the court about your decision first.")
     session = Session(intake=intake.model_dump(), model=settings.debate_model())

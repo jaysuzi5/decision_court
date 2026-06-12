@@ -20,9 +20,11 @@ const SIDE: Record<Role, string> = {
 export default function Courtroom({
   state,
   onReply,
+  onDelete,
 }: {
   state: CourtState;
   onReply: (text: string) => void;
+  onDelete: () => void;
 }) {
   const [text, setText] = useState("");
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -42,6 +44,9 @@ export default function Courtroom({
     <div className="courtroom">
       <header className="bench">
         <span className="gavel-sm">⚖</span> Decision Court — in session
+        <button className="delete-link" onClick={onDelete} title="Permanently delete this case">
+          delete case
+        </button>
       </header>
 
       {state.wrappingUp && (

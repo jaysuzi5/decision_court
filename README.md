@@ -62,6 +62,17 @@ Configurable via env / ConfigMap (verify IDs against <https://console.groq.com/d
 
 Cost guardrails: `MAX_TOKENS_PER_TURN`, `MAX_TOKENS_PER_SESSION`, `MAX_JUDGE_QUESTIONS`.
 When a session nears its token cap it is gracefully fast-forwarded to the verdict.
+Session creation is rate-limited per client IP (`RATE_LIMIT_SESSIONS` per
+`RATE_LIMIT_WINDOW_SEC`, default 20/hour).
+
+## Tests
+
+```bash
+cd backend && pip install -r requirements-dev.txt && pytest
+```
+
+Covers the verdict parser, crisis detection, the rate limiter, and prompt assembly
+(deterministic, no DB or network).
 
 ---
 

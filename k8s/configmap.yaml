@@ -14,6 +14,8 @@ data:
   MAX_TOKENS_PER_TURN: "900"
   MAX_TOKENS_PER_SESSION: "40000"
   MAX_JUDGE_QUESTIONS: "5"
+  RATE_LIMIT_SESSIONS: "20"
+  RATE_LIMIT_WINDOW_SEC: "3600"
   # Served same-origin behind the Cloudflare tunnel, so no extra CORS origin needed.
   CORS_ORIGINS: "https://decision-court.jaycurtis.org"
   CRISIS_REGION: "US"

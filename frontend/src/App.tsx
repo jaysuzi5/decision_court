@@ -4,7 +4,7 @@ import IntakeForm from "./components/Intake";
 import Courtroom from "./components/Courtroom";
 import VerdictPanel from "./components/Verdict";
 import { useCourtroom } from "./lib/useCourtroom";
-import { createSession, sendReply, CrisisError, type Intake } from "./lib/api";
+import { createSession, sendReply, deleteSession, CrisisError, type Intake } from "./lib/api";
 
 export default function App() {
   const { sessionId } = useParams();
@@ -55,6 +55,16 @@ export default function App() {
     navigate("/");
   }
 
+  async function deleteCase() {
+    if (!sessionId) return;
+    if (!window.confirm("Permanently delete this case and its transcript? This cannot be undone.")) return;
+    try {
+      await deleteSession(sessionId);
+    } finally {
+      newCase();
+    }
+  }
+
   if (crisis || state.crisis) {
     return (
       <div className="page">
@@ -82,9 +92,14 @@ export default function App() {
 
   return (
     <div className="page wide">
-      <Courtroom state={state} onReply={reply} />
+      <Courtroom state={state} onReply={reply} onDelete={deleteCase} />
       {state.verdict && (
-        <VerdictPanel verdict={state.verdict} sessionId={sessionId} onReset={newCase} />
+        <VerdictPanel
+          verdict={state.verdict}
+          sessionId={sessionId}
+          onReset={newCase}
+          onDelete={deleteCase}
+        />
       )}
     </div>
   );

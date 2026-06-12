@@ -24,7 +24,7 @@ _PATTERNS = [
     r"\bsuicid",
     r"\bwant\s+to\s+die\b",
     r"\bdon'?t\s+want\s+to\s+(live|be here|exist)\b",
-    r"\bno\s+(reason|point)\s+(to\s+)?(live|living|go on)\b",
+    r"\bno\s+(reason|point)\b[^.\n]{0,15}\b(live|living|go on|be here|exist)\b",
     r"\b(take|taking)\s+my\s+(own\s+)?life\b",
     r"\bself[\s-]?harm",
     r"\bhurt(ing)?\s+my\s?self\b",

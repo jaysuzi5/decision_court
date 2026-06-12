@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     max_tokens_per_session: int = 40000
     max_judge_questions: int = 5
 
+    # Rate limit on session creation, per client IP.
+    rate_limit_sessions: int = 20
+    rate_limit_window_sec: int = 3600
+
     cors_origins: str = "http://localhost:5173"
     crisis_region: str = "US"
 
