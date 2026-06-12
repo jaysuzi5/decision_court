@@ -18,6 +18,10 @@ spec:
       labels:
         app: decision-court
         component: web
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: decision-court
       securityContext:

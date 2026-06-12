@@ -61,11 +61,19 @@ class SessionOut(BaseModel):
 
 class ShareRequest(BaseModel):
     scope: ShareScope = ShareScope.VERDICT_ONLY
+    gallery: bool = False
 
 
 class ShareResponse(BaseModel):
     token: str
     scope: ShareScope
+    gallery: bool = False
+
+
+class GalleryItem(BaseModel):
+    token: str
+    decision: str
+    recommendation: str
 
 
 class SharedView(BaseModel):

@@ -57,14 +57,27 @@ export async function sendReply(id: string, text: string): Promise<void> {
 
 export async function createShare(
   id: string,
-  scope: "verdict_only" | "full"
-): Promise<{ token: string; scope: string }> {
+  scope: "verdict_only" | "full",
+  gallery = false
+): Promise<{ token: string; scope: string; gallery: boolean }> {
   const r = await fetch(`/api/session/${id}/share`, {
     method: "POST",
     headers: json,
-    body: JSON.stringify({ scope }),
+    body: JSON.stringify({ scope, gallery }),
   });
   if (!r.ok) throw new Error("Could not mint a share link.");
+  return r.json();
+}
+
+export interface GalleryItem {
+  token: string;
+  decision: string;
+  recommendation: string;
+}
+
+export async function fetchGallery(): Promise<GalleryItem[]> {
+  const r = await fetch("/api/gallery");
+  if (!r.ok) return [];
   return r.json();
 }
 

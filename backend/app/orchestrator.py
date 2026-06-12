@@ -4,12 +4,14 @@ is persisted, so a dropped connection simply regenerates the in-flight step (res
 idempotent). The Judge-question step pauses for a user reply."""
 
 import re
+import time
 from collections.abc import AsyncIterator
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from . import metrics
 from .agents import case_file, system_prompt
 from .config import get_settings
 from .groq_client import StreamResult, stream_chat
@@ -50,6 +52,15 @@ def _sse(event: str, **data) -> dict:
     return {"event": event, "data": data}
 
 
+def _record_turn(role: Role, model: str, res: StreamResult, started: float) -> None:
+    metrics.turns_generated.labels(role=role.value).inc()
+    metrics.turn_latency.labels(role=role.value).observe(time.perf_counter() - started)
+    if res.in_tokens:
+        metrics.groq_tokens.labels(direction="in", model=model).inc(res.in_tokens)
+    if res.out_tokens:
+        metrics.groq_tokens.labels(direction="out", model=model).inc(res.out_tokens)
+
+
 async def _persist_turn(
     db: AsyncSession, session: Session, role: Role, content: str, res: StreamResult
 ) -> Turn:
@@ -88,6 +99,7 @@ async def _generate(
     ]
     res = StreamResult()
     buf: list[str] = []
+    started = time.perf_counter()
     yield _sse("phase_start", role=role.value)
     async for delta in stream_chat(
         model=model,
@@ -101,6 +113,7 @@ async def _generate(
     content = "".join(buf).strip()
     turn = await _persist_turn(db, session, role, content, res)
     await db.commit()
+    _record_turn(role, model, res, started)
     yield _sse("turn_complete", role=role.value, sequence=turn.sequence)
 
 
@@ -154,9 +167,11 @@ async def _run_verdict(db: AsyncSession, session: Session) -> AsyncIterator[dict
     ]
     res = StreamResult()
     buf: list[str] = []
+    started = time.perf_counter()
+    model = settings.verdict_model()
     yield _sse("phase_start", role="judge", phase="verdict")
     async for delta in stream_chat(
-        model=settings.verdict_model(),
+        model=model,
         messages=messages,
         max_tokens=max(settings.max_tokens_per_turn, 1100),
         temperature=TEMPERATURE["verdict"],
@@ -170,6 +185,8 @@ async def _run_verdict(db: AsyncSession, session: Session) -> AsyncIterator[dict
     db.add(Verdict(session_id=session.id, raw=raw, **parsed))
     session.status = Status.DONE
     await db.commit()
+    _record_turn(Role.JUDGE, model, res, started)
+    metrics.verdicts_total.inc()
     yield _sse("turn_complete", role="judge", sequence=session.turns[-1].sequence)
     yield _sse("verdict", **parsed)
 

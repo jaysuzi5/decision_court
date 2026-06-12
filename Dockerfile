@@ -11,6 +11,10 @@ FROM python:3.12-slim AS runtime
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 WORKDIR /app
 
+# fonts-dejavu provides the serif TTF used to render OG share-card images
+RUN apt-get update && apt-get install -y --no-install-recommends fonts-dejavu \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY backend/requirements.txt ./backend/requirements.txt
 RUN pip install --no-cache-dir -r backend/requirements.txt
 

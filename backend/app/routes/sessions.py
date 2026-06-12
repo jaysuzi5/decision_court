@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..config import get_settings
 from ..db import SessionLocal, get_db
 from ..models import Role, Session, Status, Turn
+from .. import metrics
 from ..orchestrator import load_session, run
 from ..ratelimit import SlidingWindowLimiter
 from ..safety import crisis_response, detect_crisis
@@ -52,6 +53,7 @@ async def create_session(
     intake: Intake, request: Request, db: AsyncSession = Depends(get_db)
 ):
     if not _limiter.allow(_client_ip(request)):
+        metrics.rate_limited.inc()
         retry = _limiter.retry_after(_client_ip(request))
         raise HTTPException(
             429,
@@ -66,6 +68,8 @@ async def create_session(
         session.status = Status.CRISIS
         db.add(session)
         await db.commit()
+        metrics.sessions_created.labels(crisis="true").inc()
+        metrics.crisis_triggered.labels(stage="intake").inc()
         return CreateSessionResponse(
             id=session.id, status=session.status, crisis=True,
             crisis_message=crisis_response(settings.crisis_region),
@@ -73,6 +77,7 @@ async def create_session(
     session.status = Status.OPENING_PROS
     db.add(session)
     await db.commit()
+    metrics.sessions_created.labels(crisis="false").inc()
     return CreateSessionResponse(id=session.id, status=session.status)
 
 
@@ -138,6 +143,7 @@ async def reply(session_id: str, body: ReplyRequest, db: AsyncSession = Depends(
     if detect_crisis(body.text):
         session.status = Status.CRISIS
         await db.commit()
+        metrics.crisis_triggered.labels(stage="reply").inc()
         raise HTTPException(
             423, detail={"crisis": True, "message": crisis_response(settings.crisis_region)}
         )

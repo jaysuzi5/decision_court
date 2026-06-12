@@ -26,6 +26,8 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:5173"
     crisis_region: str = "US"
+    public_base_url: str = "http://localhost:8000"
+    gallery_size: int = 24
 
     def debate_model(self) -> str:
         return self.model_dev if self.dev_mode else self.model_debate

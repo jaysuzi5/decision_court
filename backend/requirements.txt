@@ -6,3 +6,5 @@ asyncpg==0.30.0
 pydantic==2.10.4
 pydantic-settings==2.7.1
 python-dotenv==1.0.1
+prometheus-client==0.21.1
+pillow==11.0.0

@@ -88,6 +88,9 @@ export default function IntakeForm({
         Decision Court is a thinking tool — not medical, legal, financial, or mental-health
         advice. Your intake stays private and is never shared by default.
       </p>
+      <p className="gallery-link">
+        <a href="/gallery">Browse the public gallery →</a>
+      </p>
     </div>
   );
 }

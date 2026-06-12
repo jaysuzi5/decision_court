@@ -17,11 +17,12 @@ export default function VerdictPanel({
   const [checked, setChecked] = useState<Record<number, boolean>>({});
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [shareFull, setShareFull] = useState(false);
+  const [gallery, setGallery] = useState(false);
   const [copied, setCopied] = useState(false);
 
   async function share() {
     if (!sessionId) return;
-    const { token } = await createShare(sessionId, shareFull ? "full" : "verdict_only");
+    const { token } = await createShare(sessionId, shareFull ? "full" : "verdict_only", gallery);
     setShareUrl(`${window.location.origin}/share/${token}`);
   }
 
@@ -108,11 +109,18 @@ export default function VerdictPanel({
       </div>
 
       {sessionId && (
-        <label className="share-scope">
-          <input type="checkbox" checked={shareFull} onChange={(e) => setShareFull(e.target.checked)} />
-          Include the full trial in the shared link (off = verdict + dissent only, keeps your
-          intake private)
-        </label>
+        <>
+          <label className="share-scope">
+            <input type="checkbox" checked={shareFull} onChange={(e) => setShareFull(e.target.checked)} />
+            Include the full trial in the shared link (off = verdict + dissent only, keeps your
+            intake private)
+          </label>
+          <label className="share-scope">
+            <input type="checkbox" checked={gallery} onChange={(e) => setGallery(e.target.checked)} />
+            Also post this verdict to the public <a href="/gallery">gallery</a> (decision +
+            recommendation only — never your intake)
+          </label>
+        </>
       )}
 
       {shareUrl && (

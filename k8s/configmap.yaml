@@ -19,3 +19,5 @@ data:
   # Served same-origin behind the Cloudflare tunnel, so no extra CORS origin needed.
   CORS_ORIGINS: "https://decision-court.jaycurtis.org"
   CRISIS_REGION: "US"
+  PUBLIC_BASE_URL: "https://decision-court.jaycurtis.org"
+  GALLERY_SIZE: "24"
