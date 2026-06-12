@@ -90,3 +90,37 @@ export async function deleteSession(id: string): Promise<void> {
 }
 
 export class CrisisError extends Error {}
+
+export interface Me {
+  authenticated: boolean;
+  oauth_enabled: boolean;
+  name: string;
+  email: string;
+  picture: string;
+}
+
+export interface DocketItem {
+  id: string;
+  decision: string;
+  status: string;
+  recommendation: string;
+  created_at: string;
+}
+
+export async function fetchMe(): Promise<Me> {
+  const r = await fetch("/api/auth/me");
+  if (!r.ok) return { authenticated: false, oauth_enabled: false, name: "", email: "", picture: "" };
+  return r.json();
+}
+
+export async function logout(): Promise<void> {
+  await fetch("/api/auth/logout", { method: "POST" });
+}
+
+export async function fetchDocket(): Promise<DocketItem[]> {
+  const r = await fetch("/api/auth/me/sessions");
+  if (!r.ok) return [];
+  return r.json();
+}
+
+export const googleLoginUrl = "/api/auth/google/login";

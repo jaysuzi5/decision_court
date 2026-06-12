@@ -49,6 +49,26 @@ spec:
                 secretKeyRef:
                   name: decision-court-secrets
                   key: DATABASE_URL
+            # optional until the secret is re-sealed with the Google OAuth creds —
+            # without them the app simply runs guest-only (Google sign-in hidden).
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: decision-court-secrets
+                  key: GOOGLE_CLIENT_ID
+                  optional: true
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: decision-court-secrets
+                  key: GOOGLE_CLIENT_SECRET
+                  optional: true
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: decision-court-secrets
+                  key: SESSION_SECRET
+                  optional: true
           readinessProbe:
             httpGet:
               path: /readyz

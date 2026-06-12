@@ -52,10 +52,24 @@ class ShareScope(str, enum.Enum):
     FULL = "full"
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    google_sub: Mapped[str | None] = mapped_column(String(64), unique=True, index=True, nullable=True)
+    email: Mapped[str | None] = mapped_column(String(320), index=True, nullable=True)
+    name: Mapped[str] = mapped_column(String(200), default="")
+    picture: Mapped[str] = mapped_column(String(1000), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class Session(Base):
     __tablename__ = "sessions"
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     intake: Mapped[dict] = mapped_column(JSON, default=dict)
     status: Mapped[Status] = mapped_column(Enum(Status), default=Status.INTAKE)

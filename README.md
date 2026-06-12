@@ -141,6 +141,33 @@ LoadBalancer IP is needed). No public TLS to manage in-cluster — Cloudflare te
 
 ---
 
+## Accounts & memory
+
+Sign-in is **optional** — the anonymous guest flow always works. Signing in with **Google**
+(OAuth 2.0 Authorization Code flow) lets the court remember you:
+
+- Your past decisions appear in **My Docket** (`/me`).
+- On a new case, the court is fed a short, token-bounded recap of your prior verdicts
+  (decision + recommendation only) so the Judge can reference patterns — "you've come before
+  this court about selling things."
+
+A signed, httponly session cookie carries the user id; there are no passwords. Google is one
+login method; guest is the other.
+
+To enable Google sign-in, the secret must carry `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`,
+and `SESSION_SECRET`, and the redirect URI
+`https://decision-court.jaycurtis.org/api/auth/google/callback` must be registered on the
+Google OAuth client. Re-seal with:
+
+```bash
+export GROQ_API_KEY=gsk_... POSTGRES_PASSWORD='<existing-db-password>'
+export GOOGLE_CLIENT_ID=... GOOGLE_CLIENT_SECRET=... SESSION_SECRET="$(openssl rand -hex 32)"
+./k8s/seal-secrets.sh && git commit -am 'seal: add oauth creds' && git push
+```
+
+> Re-use the **existing** Postgres password (read it from the live secret) — a new one would
+> break auth against the already-initialised database.
+
 ## Safety
 
 A structural crisis pre-check ([`backend/app/safety.py`](backend/app/safety.py)) runs on the

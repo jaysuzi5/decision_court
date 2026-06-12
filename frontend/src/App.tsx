@@ -3,13 +3,16 @@ import { useNavigate, useParams } from "react-router-dom";
 import IntakeForm from "./components/Intake";
 import Courtroom from "./components/Courtroom";
 import VerdictPanel from "./components/Verdict";
+import AuthBar from "./components/AuthBar";
 import { useCourtroom } from "./lib/useCourtroom";
+import { useMe } from "./lib/useMe";
 import { createSession, sendReply, deleteSession, CrisisError, type Intake } from "./lib/api";
 
 export default function App() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
   const { state, connect, afterReply, reset } = useCourtroom();
+  const me = useMe();
   const [busy, setBusy] = useState(false);
   const [crisis, setCrisis] = useState<string | null>(null);
 
@@ -85,6 +88,7 @@ export default function App() {
   if (!sessionId) {
     return (
       <div className="page">
+        <AuthBar me={me} />
         <IntakeForm onSubmit={start} busy={busy} />
       </div>
     );
@@ -92,6 +96,7 @@ export default function App() {
 
   return (
     <div className="page wide">
+      <AuthBar me={me} />
       <Courtroom state={state} onReply={reply} onDelete={deleteCase} />
       {state.verdict && (
         <VerdictPanel

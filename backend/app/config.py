@@ -29,6 +29,20 @@ class Settings(BaseSettings):
     public_base_url: str = "http://localhost:8000"
     gallery_size: int = 24
 
+    # Auth
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    session_secret: str = "dev-insecure-change-me"
+    cookie_secure: bool = False
+    session_max_age_days: int = 30
+    memory_max_decisions: int = 5
+
+    def google_redirect_uri(self) -> str:
+        return f"{self.public_base_url}/api/auth/google/callback"
+
+    def oauth_configured(self) -> bool:
+        return bool(self.google_client_id and self.google_client_secret)
+
     def debate_model(self) -> str:
         return self.model_dev if self.dev_mode else self.model_debate
 

@@ -76,6 +76,22 @@ class GalleryItem(BaseModel):
     recommendation: str
 
 
+class MeResponse(BaseModel):
+    authenticated: bool
+    oauth_enabled: bool
+    name: str = ""
+    email: str = ""
+    picture: str = ""
+
+
+class DocketItem(BaseModel):
+    id: str
+    decision: str
+    status: str
+    recommendation: str
+    created_at: str
+
+
 class SharedView(BaseModel):
     scope: ShareScope
     verdict: VerdictOut | None

@@ -21,3 +21,5 @@ data:
   CRISIS_REGION: "US"
   PUBLIC_BASE_URL: "https://decision-court.jaycurtis.org"
   GALLERY_SIZE: "24"
+  COOKIE_SECURE: "true"
+  MEMORY_MAX_DECISIONS: "5"

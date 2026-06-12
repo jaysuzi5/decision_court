@@ -17,7 +17,7 @@ from .db import SessionLocal, engine, init_db
 from .models import Share
 from .og import plain_text
 from .orchestrator import load_session
-from .routes import sessions, share
+from .routes import auth, sessions, share
 
 logging.basicConfig(
     level=logging.INFO,
@@ -60,6 +60,7 @@ async def record_metrics(request: Request, call_next):
     return response
 
 
+app.include_router(auth.router)
 app.include_router(sessions.router)
 app.include_router(share.router)
 

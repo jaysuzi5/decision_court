@@ -8,8 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import get_settings
 from ..db import SessionLocal, get_db
-from ..models import Role, Session, Status, Turn
+from ..models import Role, Session, Status, Turn, User
 from .. import metrics
+from ..auth import current_user_optional
 from ..orchestrator import load_session, run
 from ..ratelimit import SlidingWindowLimiter
 from ..safety import crisis_response, detect_crisis
@@ -50,7 +51,8 @@ def _intake_text(intake: Intake) -> str:
 
 @router.post("/session", response_model=CreateSessionResponse)
 async def create_session(
-    intake: Intake, request: Request, db: AsyncSession = Depends(get_db)
+    intake: Intake, request: Request, db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(current_user_optional),
 ):
     if not _limiter.allow(_client_ip(request)):
         metrics.rate_limited.inc()
@@ -63,7 +65,10 @@ async def create_session(
         )
     if intake.is_empty():
         raise HTTPException(422, "Tell the court about your decision first.")
-    session = Session(intake=intake.model_dump(), model=settings.debate_model())
+    session = Session(
+        intake=intake.model_dump(), model=settings.debate_model(),
+        user_id=user.id if user else None,
+    )
     if detect_crisis(_intake_text(intake)):
         session.status = Status.CRISIS
         db.add(session)

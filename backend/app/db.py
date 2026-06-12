@@ -19,6 +19,8 @@ SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 _MIGRATIONS = [
     "ALTER TABLE shares ADD COLUMN IF NOT EXISTS gallery BOOLEAN NOT NULL DEFAULT FALSE",
     "CREATE INDEX IF NOT EXISTS ix_shares_gallery ON shares (gallery)",
+    "ALTER TABLE sessions ADD COLUMN IF NOT EXISTS user_id VARCHAR(32)",
+    "CREATE INDEX IF NOT EXISTS ix_sessions_user_id ON sessions (user_id)",
 ]
 
 

@@ -41,11 +41,35 @@ def _transcript(turns: list[Turn]) -> str:
     return "\n\n".join(f"### {ROLE_LABEL.get(t.role, t.role.value)}\n{t.content}" for t in turns)
 
 
-def _user_block(intake: Intake, turns: list[Turn], instruction: str) -> str:
+def _user_block(intake: Intake, turns: list[Turn], instruction: str, memory: str = "") -> str:
+    mem = (
+        f"## PRIOR RULINGS — this petitioner has come before the court before\n{memory}\n\n"
+        if memory else ""
+    )
     return (
-        f"{case_file(intake)}\n\n## TRANSCRIPT SO FAR\n{_transcript(turns)}\n\n"
+        f"{case_file(intake)}\n\n{mem}## TRANSCRIPT SO FAR\n{_transcript(turns)}\n\n"
         f"## YOUR TASK\n{instruction}"
     )
+
+
+async def load_user_memory(db: AsyncSession, user_id: str, exclude_id: str) -> str:
+    """Short, token-bounded recap of the petitioner's past verdicts, fed to the court
+    so it 'remembers' prior rulings. Metadata only — decisions + recommendations."""
+    res = await db.execute(
+        select(Session)
+        .where(Session.user_id == user_id, Session.id != exclude_id, Session.status == Status.DONE)
+        .order_by(Session.created_at.desc())
+        .limit(settings.memory_max_decisions)
+        .options(selectinload(Session.verdict))
+    )
+    lines: list[str] = []
+    for s in res.scalars().all():
+        decision = (s.intake or {}).get("one_sentence", "") or "a past decision"
+        rec = s.verdict.recommendation if s.verdict else ""
+        rec = re.sub(r"\s+", " ", re.sub(r"\*\*|__|`", "", rec)).strip()
+        if rec:
+            lines.append(f"- On \"{decision.strip()}\" the court ruled: {rec[:220]}")
+    return "\n".join(lines)
 
 
 def _sse(event: str, **data) -> dict:
@@ -90,12 +114,13 @@ async def _generate(
     temperature: float,
     model: str,
     extra_system: str = "",
+    memory: str = "",
 ) -> AsyncIterator[dict]:
     """Stream one agent turn, emit deltas, persist on completion."""
     intake = Intake(**session.intake)
     messages = [
         {"role": "system", "content": system_prompt(persona, extra=extra_system)},
-        {"role": "user", "content": _user_block(intake, session.turns, instruction)},
+        {"role": "user", "content": _user_block(intake, session.turns, instruction, memory)},
     ]
     res = StreamResult()
     buf: list[str] = []
@@ -159,11 +184,11 @@ def parse_verdict(raw: str) -> dict:
     }
 
 
-async def _run_verdict(db: AsyncSession, session: Session) -> AsyncIterator[dict]:
+async def _run_verdict(db: AsyncSession, session: Session, memory: str = "") -> AsyncIterator[dict]:
     intake = Intake(**session.intake)
     messages = [
         {"role": "system", "content": system_prompt("judge", extra="Mode: VERDICT")},
-        {"role": "user", "content": _user_block(intake, session.turns, _VERDICT_INSTRUCTION)},
+        {"role": "user", "content": _user_block(intake, session.turns, _VERDICT_INSTRUCTION, memory)},
     ]
     res = StreamResult()
     buf: list[str] = []
@@ -206,6 +231,10 @@ async def run(db: AsyncSession, session: Session) -> AsyncIterator[dict]:
         yield _sse("crisis")
         return
 
+    memory = ""
+    if session.user_id:
+        memory = await load_user_memory(db, session.user_id, session.id)
+
     while True:
         # Cost guardrail: out of budget -> jump straight to verdict so user still gets one.
         if (
@@ -227,6 +256,7 @@ async def run(db: AsyncSession, session: Session) -> AsyncIterator[dict]:
                 db, session, persona="prosecutor", role=Role.PROSECUTOR,
                 instruction="Deliver your opening statement now.",
                 temperature=TEMPERATURE["opening"], model=settings.debate_model(),
+                memory=memory,
             ):
                 yield ev
             session.status = Status.OPENING_DEF
@@ -237,6 +267,7 @@ async def run(db: AsyncSession, session: Session) -> AsyncIterator[dict]:
                 db, session, persona="defender", role=Role.DEFENDER,
                 instruction="Deliver your opening statement now, answering the Prosecutor where useful.",
                 temperature=TEMPERATURE["opening"], model=settings.debate_model(),
+                memory=memory,
             ):
                 yield ev
             session.status = Status.JUDGE_Q
@@ -262,7 +293,7 @@ async def run(db: AsyncSession, session: Session) -> AsyncIterator[dict]:
                     f"{settings.max_judge_questions}). One question only."
                 ),
                 temperature=TEMPERATURE["judge_q"], model=settings.debate_model(),
-                extra_system="Mode: CROSS_EXAMINATION",
+                extra_system="Mode: CROSS_EXAMINATION", memory=memory,
             ):
                 yield ev
             session.questions_asked = n
@@ -282,6 +313,7 @@ async def run(db: AsyncSession, session: Session) -> AsyncIterator[dict]:
                     "questioning and attack the Defender's strongest point."
                 ),
                 temperature=TEMPERATURE["rebuttal"], model=settings.debate_model(),
+                memory=memory,
             ):
                 yield ev
             session.status = Status.REBUTTAL_DEF
@@ -295,13 +327,14 @@ async def run(db: AsyncSession, session: Session) -> AsyncIterator[dict]:
                     "answer the Prosecutor's strongest attack."
                 ),
                 temperature=TEMPERATURE["rebuttal"], model=settings.debate_model(),
+                memory=memory,
             ):
                 yield ev
             session.status = Status.VERDICT
             await db.commit()
 
         elif st == Status.VERDICT:
-            async for ev in _run_verdict(db, session):
+            async for ev in _run_verdict(db, session, memory):
                 yield ev
             # status set to DONE inside _run_verdict
 
